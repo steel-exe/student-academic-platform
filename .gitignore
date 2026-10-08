@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Testing and coverage reports
+.pytest_cache/
+.coverage
+htmlcov/
+reports/
+*.xml
+
+# Extracted docx artifacts and assignment prompts
+Assignment_*.docx
+doc1_extracted.txt
+doc2_extracted.txt
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
