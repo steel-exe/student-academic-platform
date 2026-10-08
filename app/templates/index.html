@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Student Record & Academic Management Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">
+            <div class="logo-icon">🎓</div>
+            <div>
+                <h1>EduEnterprise ERP</h1>
+                <p class="subtitle">Student Record & Academic Management Platform</p>
+            </div>
+        </div>
+        <div class="header-badges">
+            <span class="badge badge-pulse" id="cluster-status">● Cluster Active: NodePort 30090</span>
+            <span class="badge badge-info">v1.0.0 Production</span>
+            <span class="badge badge-env">Kubernetes / Minikube</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Live Metrics Section -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Registered Students</span>
+                    <span class="metric-icon">👥</span>
+                </div>
+                <div class="metric-value" id="val-students">{{ stats.total_students }}</div>
+                <div class="metric-footer">Active enrollment tracking</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Academic Courses</span>
+                    <span class="metric-icon">📚</span>
+                </div>
+                <div class="metric-value" id="val-courses">{{ stats.total_courses }}</div>
+                <div class="metric-footer">Across CS, SE, Data Science</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Active Enrollments</span>
+                    <span class="metric-icon">📝</span>
+                </div>
+                <div class="metric-value" id="val-enrollments">{{ stats.active_enrollments }}</div>
+                <div class="metric-footer">Max 18 credits / semester</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Average GPA</span>
+                    <span class="metric-icon">⭐</span>
+                </div>
+                <div class="metric-value" id="val-gpa">{{ stats.average_gpa }}</div>
+                <div class="metric-footer">{{ stats.deans_list_count }} on Dean's List (GPA ≥ 3.5)</div>
+            </div>
+        </section>
+
+        <!-- Quick Action Panels -->
+        <div class="dashboard-grid">
+            <!-- Left Column: Operations & Forms -->
+            <div class="panel actions-panel">
+                <h2 class="panel-title">⚡ Academic Management Operations</h2>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('enroll')">Course Enrollment</button>
+                    <button class="tab-btn" onclick="showTab('marks')">Record Marks & GPA</button>
+                    <button class="tab-btn" onclick="showTab('new-student')">Register Student</button>
+                </div>
+
+                <!-- Tab 1: Enroll -->
+                <div id="tab-enroll" class="tab-content active">
+                    <form id="enroll-form" onsubmit="handleEnroll(event)">
+                        <div class="form-group">
+                            <label for="enroll-student-id">Select Student</label>
+                            <select id="enroll-student-id" required>
+                                {% for s in students %}
+                                <option value="{{ s.student_id }}">{{ s.student_id }} - {{ s.name }} ({{ s.enrolled_credits }}/18 cr)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="enroll-course-id">Select Course</label>
+                            <select id="enroll-course-id" required>
+                                {% for c in courses %}
+                                <option value="{{ c.course_id }}">{{ c.course_id }}: {{ c.title }} ({{ c.credits }} cr, Cap: {{ c.enrolled_count }}/{{ c.max_capacity }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="enroll-semester">Semester</label>
+                            <input type="text" id="enroll-semester" value="Fall 2026" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Enroll in Course</button>
+                    </form>
+                </div>
+
+                <!-- Tab 2: Marks & GPA -->
+                <div id="tab-marks" class="tab-content">
+                    <form id="marks-form" onsubmit="handleRecordMarks(event)">
+                        <div class="form-group">
+                            <label for="marks-student-id">Student ID</label>
+                            <select id="marks-student-id" required>
+                                {% for s in students %}
+                                <option value="{{ s.student_id }}">{{ s.student_id }} - {{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="marks-course-id">Course ID</label>
+                            <select id="marks-course-id" required>
+                                {% for c in courses %}
+                                <option value="{{ c.course_id }}">{{ c.course_id }} - {{ c.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="marks-value">Academic Marks (0.0 to 100.0)</label>
+                            <input type="number" id="marks-value" min="0" max="100" step="0.5" placeholder="e.g. 92.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="marks-semester">Semester</label>
+                            <input type="text" id="marks-semester" value="Fall 2026" required>
+                        </div>
+                        <button type="submit" class="btn btn-accent">Submit Marks & Recompute GPA</button>
+                    </form>
+                </div>
+
+                <!-- Tab 3: Register Student -->
+                <div id="tab-new-student" class="tab-content">
+                    <form id="student-form" onsubmit="handleRegisterStudent(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reg-id">Student ID</label>
+                                <input type="text" id="reg-id" placeholder="e.g. S105" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-semester">Semester</label>
+                                <input type="number" id="reg-semester" value="1" min="1" max="12" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-name">Full Name</label>
+                            <input type="text" id="reg-name" placeholder="e.g. Grace Hopper" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-email">University Email</label>
+                            <input type="email" id="reg-email" placeholder="name@university.edu" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-dept">Department</label>
+                            <select id="reg-dept">
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Software Engineering">Software Engineering</option>
+                                <option value="Data Science">Data Science</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success">Register Student Record</button>
+                    </form>
+                </div>
+
+                <div id="action-feedback" class="feedback-box" style="display:none;"></div>
+            </div>
+
+            <!-- Right Column: Microservice & DevOps Info -->
+            <div class="panel">
+                <h2 class="panel-title">🛡️ Enterprise DevOps Pipeline Status</h2>
+                <div class="devops-status-list">
+                    <div class="status-item">
+                        <span class="status-badge success">PASS</span>
+                        <div>
+                            <strong>Continuous Integration (Jenkins / Pytest)</strong>
+                            <p>Automated Unit & Integration test suites, JUnit XML reports</p>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge success">PASS</span>
+                        <div>
+                            <strong>Flake8 Static Code Quality Gate</strong>
+                            <p>PEP 8 compliance and syntax analysis</p>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge success">READY</span>
+                        <div>
+                            <strong>Docker Containerization</strong>
+                            <p>Multi-stage image <code>student-academic-platform:v1.0.0</code></p>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-badge success">LIVE</span>
+                        <div>
+                            <strong>Kubernetes Orchestration (Minikube)</strong>
+                            <p>3 Replicas with RollingUpdate and NodePort 30090</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-links">
+                    <h3>Explore REST API Endpoints</h3>
+                    <ul>
+                        <li><a href="/api/health" target="_blank"><code>GET /api/health</code></a> - Liveness probe</li>
+                        <li><a href="/api/dashboard" target="_blank"><code>GET /api/dashboard</code></a> - Real-time metrics</li>
+                        <li><a href="/api/students" target="_blank"><code>GET /api/students</code></a> - Students catalog</li>
+                        <li><a href="/api/courses" target="_blank"><code>GET /api/courses</code></a> - Course registry</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Records Table -->
+        <section class="panel table-panel">
+            <div class="table-header">
+                <h2>📋 Registered Student Directory</h2>
+                <input type="text" id="search-student" placeholder="Search student by name, ID or department..." onkeyup="filterStudents()">
+            </div>
+            <div class="table-container">
+                <table id="students-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Full Name</th>
+                            <th>Department</th>
+                            <th>Semester</th>
+                            <th>Active Credits</th>
+                            <th>Cumulative GPA</th>
+                            <th>Academic Standing</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr>
+                            <td><code>{{ s.student_id }}</code></td>
+                            <td><strong>{{ s.name }}</strong><br><small class="text-muted">{{ s.email }}</small></td>
+                            <td>{{ s.department }}</td>
+                            <td>Sem {{ s.semester }}</td>
+                            <td><span class="credit-pill">{{ s.enrolled_credits }} / 18 cr</span></td>
+                            <td><span class="gpa-badge">{{ s.cumulative_gpa }}</span></td>
+                            <td>
+                                {% if s.academic_standing == "Dean's List" %}
+                                <span class="tag tag-gold">🏆 Dean's List</span>
+                                {% elif s.academic_standing == "Academic Probation" %}
+                                <span class="tag tag-red">⚠️ Probation</span>
+                                {% else %}
+                                <span class="tag tag-green">✓ Good Standing</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/api/students/{{ s.student_id }}/transcript" target="_blank" class="btn-sm">Transcript</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Academic Course Catalog Table -->
+        <section class="panel table-panel">
+            <div class="table-header">
+                <h2>📚 Academic Course Catalog & Capacity</h2>
+            </div>
+            <div class="table-container">
+                <table id="courses-table">
+                    <thead>
+                        <tr>
+                            <th>Course ID</th>
+                            <th>Course Title</th>
+                            <th>Credits</th>
+                            <th>Faculty Advisor</th>
+                            <th>Enrollment Capacity</th>
+                            <th>Semester</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in courses %}
+                        <tr>
+                            <td><code>{{ c.course_id }}</code></td>
+                            <td><strong>{{ c.title }}</strong></td>
+                            <td><span class="badge badge-info">{{ c.credits }} Credits</span></td>
+                            <td>{{ c.faculty_id }}</td>
+                            <td>
+                                <div class="capacity-bar">
+                                    <div class="progress" style="width: {{ (c.enrolled_count / c.max_capacity) * 100 }}%"></div>
+                                </div>
+                                <small>{{ c.enrolled_count }} / {{ c.max_capacity }} Students</small>
+                            </td>
+                            <td>{{ c.semester }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showFeedback(msg, isError) {
+            const fb = document.getElementById('action-feedback');
+            fb.style.display = 'block';
+            fb.className = 'feedback-box ' + (isError ? 'feedback-error' : 'feedback-success');
+            fb.textContent = msg;
+            setTimeout(() => { fb.style.display = 'none'; }, 6000);
+        }
+
+        async function handleEnroll(e) {
+            e.preventDefault();
+            const body = {
+                student_id: document.getElementById('enroll-student-id').value,
+                course_id: document.getElementById('enroll-course-id').value,
+                semester: document.getElementById('enroll-semester').value
+            };
+            try {
+                const res = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showFeedback('Success: ' + data.message, false);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showFeedback('Enrollment Error: ' + data.error, true);
+                }
+            } catch (err) {
+                showFeedback('Network Error: ' + err.message, true);
+            }
+        }
+
+        async function handleRecordMarks(e) {
+            e.preventDefault();
+            const body = {
+                student_id: document.getElementById('marks-student-id').value,
+                course_id: document.getElementById('marks-course-id').value,
+                marks: parseFloat(document.getElementById('marks-value').value),
+                semester: document.getElementById('marks-semester').value
+            };
+            try {
+                const res = await fetch('/api/grades', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showFeedback(`Marks Recorded: ${data.grade.marks} (${data.grade.letter_grade}, ${data.grade.grade_points} pts). Student GPA updated!`, false);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showFeedback('Error: ' + data.error, true);
+                }
+            } catch (err) {
+                showFeedback('Network Error: ' + err.message, true);
+            }
+        }
+
+        async function handleRegisterStudent(e) {
+            e.preventDefault();
+            const body = {
+                student_id: document.getElementById('reg-id').value,
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                department: document.getElementById('reg-dept').value,
+                semester: parseInt(document.getElementById('reg-semester').value)
+            };
+            try {
+                const res = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showFeedback('Student Registered: ' + data.student.name, false);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showFeedback('Error: ' + data.error, true);
+                }
+            } catch (err) {
+                showFeedback('Network Error: ' + err.message, true);
+            }
+        }
+
+        function filterStudents() {
+            const query = document.getElementById('search-student').value.toLowerCase();
+            const rows = document.querySelectorAll('#students-table tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
