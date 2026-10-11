@@ -51,14 +51,7 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: actions/setup-buildx-action@v3
-
-    - name: Build Docker Image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        tags: |
-          student-academic-platform:latest
-          student-academic-platform:${{ github.sha }}
+    - name: Build Docker Container Image
+      run: |
+        docker build -t student-academic-platform:latest -t student-academic-platform:${{ github.sha }} .
+        docker images
