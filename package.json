@@ -1,0 +1,20 @@
+{
+  "name": "student-academic-platform",
+  "version": "1.0.0",
+  "description": "Enterprise Student Record & Academic Management Platform",
+  "scripts": {
+    "dev": "python run.py",
+    "start": "python run.py",
+    "test": "pytest tests -v"
+  },
+  "keywords": [
+    "python",
+    "flask",
+    "docker",
+    "kubernetes",
+    "devops",
+    "ci-cd"
+  ],
+  "author": "shivraj dhumal <dhumalshivraj92@gmail.com>",
+  "license": "MIT"
+}

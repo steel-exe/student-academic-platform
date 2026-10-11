@@ -1,20 +1,33 @@
 # Enterprise Student Record & Academic Management Platform
 
-[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-Jenkins%20Declarative-blue.svg)](Jenkinsfile)
+[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%7C%20Jenkins-blue.svg)](.github/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/pytest-35%20passed%20%7C%2091%25%20coverage-brightgreen.svg)](reports/test-results.xml)
 [![Docker](https://img.shields.io/badge/docker-student--academic--platform%3Av1.0.0-blue.svg)](Dockerfile)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube%20NodePort%2030090-326ce5.svg)](k8s/)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An enterprise-grade, cloud-native student record and academic grading microservice built with Python, Flask, Pytest, Docker, Jenkins, and Kubernetes (Minikube).
 
 ---
 
-## 1. System Architecture & Multi-Tier Project Structure
+## 📸 Platform Preview
+
+![Academic Platform Dashboard Preview](docs/images/dashboard-preview.jpg)
+
+---
+
+## 🏛️ System Architecture
+
+![Cloud-Native Platform Architecture](docs/images/architecture-diagram.jpg)
 
 The platform is architected according to modern enterprise multi-tier software engineering standards:
 
-```
-devops/
+```text
+student-academic-platform/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                # Automated GitHub Actions CI workflow (Lint, Test, Docker)
 ├── app/
 │   ├── __init__.py               # Flask Application Factory pattern (create_app)
 │   ├── routes/
@@ -37,6 +50,10 @@ devops/
 ├── database/
 │   ├── __init__.py
 │   └── db.py                     # Thread-safe in-memory database store with seed data
+├── docs/
+│   └── images/                   # High-resolution architectural diagrams & UI previews
+│       ├── architecture-diagram.jpg
+│       └── dashboard-preview.jpg
 ├── tests/
 │   ├── __init__.py
 │   ├── test_student_service.py   # Unit tests for student registry operations
@@ -50,25 +67,74 @@ devops/
 ├── Dockerfile                    # Multi-layer secure container build recipe
 ├── .dockerignore                 # Container build exclusions
 ├── requirements.txt              # Pinned Python package dependencies
+├── package.json                  # Convenience CLI runners (npm run dev, test)
 ├── run.py                        # Production application server entrypoint
+├── LICENSE                       # MIT License
 ├── .gitignore                    # Version control exclusion rules
 └── README.md                     # Comprehensive architecture and runbook
 ```
 
 ---
 
-## 2. Core Business Entities & Validation Rules
+## ⚡ Quick Start & Execution
 
-### 2.1 Database Schema (Thread-Safe In-Memory Store)
-The platform implements a singleton database pattern protected by `threading.Lock()` to ensure atomic, race-condition-free reads and writes across concurrent HTTP worker threads:
-- **Students**: Tracks `student_id`, `name`, `email`, `department`, `semester`, `enrolled_credits`, `cumulative_gpa`, and `academic_standing`.
-- **Courses**: Tracks `course_id`, `title`, `credits`, `faculty_id`, `max_capacity`, `enrolled_count`, and `semester`.
-- **Enrollments**: Transactional log with `enrollment_id`, `student_id`, `course_id`, `semester`, `status` (`ENROLLED`, `DROPPED`, `COMPLETED`), and timestamp.
-- **Grades**: Evaluated records containing `grade_id`, `student_id`, `course_id`, `semester`, `marks`, `letter_grade`, `grade_points`, and timestamp.
-- **Faculty**: Directory of academic advisors and course instructors.
+### Option 1: Native Python (Development)
+```bash
+# Clone the repository
+git clone https://github.com/steel-exe/student-academic-platform.git
+cd student-academic-platform
 
-### 2.2 Enterprise Validation & Business Rules
-1. **Semester Credit Limit**: A student cannot register for more than **18 credits** in a given semester. Attempting to enroll in a course that pushes active credits over 18 throws an immediate rejection (`ValueError: Semester credit limit exceeded (Max: 18 credits)`).
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate       # On Windows: .\.venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run application server
+python run.py
+# Or via npm script runner: npm run dev
+```
+Open **[http://localhost:5000](http://localhost:5000)** in your browser.
+
+---
+
+### Option 2: Docker Container (Production)
+```bash
+# Build the Docker image
+docker build -t student-academic-platform:v1.0.0 .
+
+# Run the container with port forwarding
+docker run -d -p 5000:5000 --name student-container student-academic-platform:v1.0.0
+
+# Verify health status
+curl http://localhost:5000/api/health
+```
+
+---
+
+### Option 3: Kubernetes (Minikube Orchestration)
+```bash
+# Point shell to Minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Build image inside Minikube
+docker build -t student-academic-platform:v1.0.0 .
+
+# Deploy Kubernetes manifests
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+
+# Verify pods and service
+kubectl get pods -l app=student-platform
+kubectl get svc student-service
+```
+
+---
+
+## 📊 Core Business Rules & Validation
+
+1. **Semester Credit Limit**: A student cannot register for more than **18 credits** in a given semester. Attempting to enroll in excess of 18 credits triggers `ValueError: Semester credit limit exceeded (Max: 18 credits)`.
 2. **Duplicate Prevention**: Students cannot enroll in the same course for the same semester more than once.
 3. **Course Capacity Governance**: Enrollments are automatically capped by `max_capacity`.
 4. **Weighted GPA Calculation**:
@@ -86,7 +152,7 @@ The platform implements a singleton database pattern protected by `threading.Loc
 
 ---
 
-## 3. REST API Endpoint Reference
+## 🔌 REST API Endpoint Reference
 
 | Method | Endpoint | Description | Status Codes |
 |---|---|---|---|
@@ -106,28 +172,19 @@ The platform implements a singleton database pattern protected by `threading.Loc
 
 ---
 
-## 4. Automated Testing & Code Quality Gates
+## 🧪 Automated Testing & Code Quality Gates
 
 The test suite contains **35 tests** across 4 dedicated test modules with **91% overall statement coverage**:
 
 ```bash
-# Execute full test suite with coverage report and JUnit XML export
-python -m pytest -v --cov=app --cov-report=term-missing --junitxml=reports/test-results.xml tests/
+# Execute Pytest test suites with coverage report & JUnit XML export
+pytest -v --cov=app --cov-report=term-missing --junitxml=reports/test-results.xml tests/
 
 # Execute static code analysis syntax gate via Flake8
-python -m flake8 app/ database/ --count --select=E9,F63,F7,F82 --show-source --statistics
+flake8 app/ database/ --count --select=E9,F63,F7,F82 --show-source --statistics
 ```
 
 ---
 
-## 5. Containerization & Kubernetes Orchestration
-
-### 5.1 Docker Container Image
-- Multi-layer image built on `python:3.11-slim`.
-- Runs as dedicated non-root user `appuser` (UID 1000).
-- Exposes port `5000` with internal `HEALTHCHECK` probe targeting `/api/health`.
-
-### 5.2 Kubernetes (Minikube) Deployment
-- **Deployment**: `student-deployment` (3 replicas, RollingUpdate strategy, resource limits: 250m CPU, 256Mi RAM).
-- **Self-Healing Probes**: Configured with `livenessProbe` and `readinessProbe` checking `/api/health`.
-- **Service**: `student-service` exposed via **NodePort 30090**.
+## 📜 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
