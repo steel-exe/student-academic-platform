@@ -31,3 +31,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# Sub-repositories and uploaded task folders
+SU_DevOps/
+unit 1/
+unit2/
+*.docx
+
